@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 
 #include "Camera.h"
 #include "FileSystem.h"
@@ -343,14 +345,38 @@ unsigned int loadTexture(char const * path)
 
 void MainRender(bool LeftEye)
 {
+	glm::mat4 PerspectiveProjection;
+
 	if (LeftEye)
 	{
 		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
+
+		// Set camera Position
+		std::cout << "LeftEye camera->Positio" << glm::to_string(camera->Position) << std::endl;
+		std::cout << "LeftEye camera->LeftEye" << glm::to_string(glm::normalize(camera->LeftEye)) << std::endl;
+		camera->CameraOffset = glm::normalize(camera->LeftEye);
+
+		// Get perspective matrix here
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->LeftEye);
+		std::cout <<  "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 	}
 	else
 	{
 		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
+
+		// Set camera Position
+		std::cout << "RightEye camera->Positio" << glm::to_string(camera->Position) << std::endl;
+		std::cout << "RightEye camera->RightEye" << glm::to_string(glm::normalize(camera->RightEye)) << std::endl;
+		camera->CameraOffset = glm::normalize(camera->RightEye);
+
+
+
+		// Get perspective matrix here
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->RightEye);
+		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 	}
+
+
 
 	// be sure to activate shader when setting uniforms/drawing objects
 	lightingShader->use();

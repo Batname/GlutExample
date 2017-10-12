@@ -44,6 +44,8 @@ class Camera
 {
 public:
 	// Camera Attributes
+	glm::vec3 CameraOffset;
+
 	glm::vec3 Position;
 	glm::vec3 Front;
 	glm::vec3 Up;
@@ -84,10 +86,14 @@ public:
 	glm::vec3 pa;
 	glm::vec3 pb;
 	glm::vec3 pc;
+	
+	float NearPlane;
+	float FarPlane;
 
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 	{
+		CameraOffset = glm::normalize(glm::vec3(0.f, 0.f, 160.f));
 		Position = position;
 		WorldUp = up;
 		Yaw = yaw;
@@ -97,6 +103,8 @@ public:
 		SoketID = 0;
 		bIsUDPThreadRunning = false;
 
+		NearPlane = 0.1f;
+		FarPlane = 100.f;
 
 		pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
 		width_cm = (float)(ScreenWidth * pixelsize_cm);
@@ -115,7 +123,9 @@ public:
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
 	glm::mat4 GetViewMatrix()
 	{
-		return glm::lookAt(Position, Position + Front, Up);
+		// CameraOffset - it is data from camera
+
+		return glm::lookAt(Position + CameraOffset, Position + CameraOffset + Front, Up);
 	}
 
 	// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -339,7 +349,7 @@ public:
 	}
 
 
-	glm::mat4 GeneralizedPerspectiveProjection(glm::vec3 pa, glm::vec3 pb, glm::vec3 pc, glm::vec3 pe, float NearPlane, float FarPlane)
+	glm::mat4 GeneralizedPerspectiveProjection(const glm::vec3& pe)
 	{
 		glm::vec3 va, vb, vc;
 		glm::vec3 vr, vu, vn;
