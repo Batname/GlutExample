@@ -31,7 +31,7 @@ unsigned int CurrentWidth = SCR_WIDTH;
 unsigned int CurrentHeight = SCR_HEIGHT;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera* camera;
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -121,6 +121,10 @@ unsigned int lightVAO;
 
 int main()
 {
+	// start listening UDP packages
+	camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+	camera->ListenCamerasUDP();
+
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -240,6 +244,9 @@ int main()
 	// glfw: terminate, clearing all previously allocated GLFW resources.
 	// ------------------------------------------------------------------
 	glfwTerminate();
+
+	// Close cameras udp connection
+	camera->CloseCamerasUDP();
 	return 0;
 }
 
@@ -251,13 +258,13 @@ void processInput(GLFWwindow *window)
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboard(FORWARD, deltaTime);
+		camera->ProcessKeyboard(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
+		camera->ProcessKeyboard(BACKWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboard(LEFT, deltaTime);
+		camera->ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.ProcessKeyboard(RIGHT, deltaTime);
+		camera->ProcessKeyboard(RIGHT, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -285,14 +292,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	camera.ProcessMouseMovement(xoffset, yoffset);
+	camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.ProcessMouseScroll(yoffset);
+	camera->ProcessMouseScroll(yoffset);
 }
 
 // utility function for loading a 2D texture from file
@@ -347,7 +354,7 @@ void MainRender(bool LeftEye)
 
 	// be sure to activate shader when setting uniforms/drawing objects
 	lightingShader->use();
-	lightingShader->setVec3("viewPos", camera.Position);
+	lightingShader->setVec3("viewPos", camera->Position);
 	lightingShader->setFloat("material.shininess", 32.0f);
 
 	/*
@@ -394,8 +401,8 @@ void MainRender(bool LeftEye)
 	lightingShader->setFloat("pointLights[3].linear", 0.09);
 	lightingShader->setFloat("pointLights[3].quadratic", 0.032);
 	// spotLight
-	lightingShader->setVec3("spotLight.position", camera.Position);
-	lightingShader->setVec3("spotLight.direction", camera.Front);
+	lightingShader->setVec3("spotLight.position", camera->Position);
+	lightingShader->setVec3("spotLight.direction", camera->Front);
 	lightingShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
 	lightingShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
 	lightingShader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -406,8 +413,8 @@ void MainRender(bool LeftEye)
 	lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
 	// view/projection transformations
-	glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-	glm::mat4 view = camera.GetViewMatrix();
+	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	glm::mat4 view = camera->GetViewMatrix();
 	lightingShader->setMat4("projection", projection);
 	lightingShader->setMat4("view", view);
 

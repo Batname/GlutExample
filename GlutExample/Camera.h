@@ -5,6 +5,19 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <stdio.h>
+
+// http://www.binarytides.com/udp-socket-programming-in-winsock/
+#include <stdio.h>
+#include <winsock2.h>
+#include <thread>
+#include <time.h>
+
+
+#pragma comment(lib,"ws2_32.lib") //Winsock Library
+#define SERVER "127.0.0.1"  //ip address of udp server
+#define BUFLEN 512  //Max length of buffer
+#define PORT 6768   //The port on which to listen for incoming data
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement {
@@ -39,6 +52,7 @@ public:
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
+	int SoketID;
 
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
@@ -48,6 +62,7 @@ public:
 		Yaw = yaw;
 		Pitch = pitch;
 		updateCameraVectors();
+		SoketID = 0;
 	}
 	// Constructor with scalar values
 	Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
@@ -57,6 +72,7 @@ public:
 		Yaw = yaw;
 		Pitch = pitch;
 		updateCameraVectors();
+		SoketID = 0;
 	}
 
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -110,6 +126,68 @@ public:
 			Zoom = 1.0f;
 		if (Zoom >= 45.0f)
 			Zoom = 45.0f;
+	}
+
+	//  Listen Cameras UDP packages
+	void ListenCamerasUDP()
+	{
+		struct sockaddr_in si_other;
+		int slen = sizeof(si_other);
+		char buf[BUFLEN];
+		char message[BUFLEN];
+		WSADATA wsa;
+
+		//Initialise winsock
+		printf("\nInitialising Winsock...");
+		if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+		{
+			printf("Failed. Error Code : %d", WSAGetLastError());
+			exit(EXIT_FAILURE);
+		}
+		printf("Initialised.\n");
+
+		//create socket
+		if ((SoketID = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
+		{
+			printf("socket() failed with error code : %d", WSAGetLastError());
+			exit(EXIT_FAILURE);
+		}
+
+		//setup address structure
+		memset((char *)&si_other, 0, sizeof(si_other));
+		si_other.sin_family = AF_INET;
+		si_other.sin_port = htons(PORT);
+		si_other.sin_addr.S_un.S_addr = inet_addr(SERVER);
+
+		if (bind(SoketID, (SOCKADDR *)&si_other, sizeof(SOCKADDR_IN)) == SOCKET_ERROR)
+		{
+			printf("socket() failed with error code : %d", WSAGetLastError());
+			exit(EXIT_FAILURE);
+		}
+
+		//start communication
+		while (1)
+		{
+			//clear the buffer by filling null, it might have previously received data
+			memset(buf, '\0', BUFLEN);
+			//try to receive some data, this is a blocking call
+			if (recvfrom(SoketID, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			{
+				printf("recvfrom() failed with error code : %d", WSAGetLastError());
+				exit(EXIT_FAILURE);
+			}
+
+			puts(buf);
+		}
+	}
+
+	void CloseCamerasUDP()
+	{
+		if (SoketID)
+		{
+			closesocket(SoketID);
+			WSACleanup();
+		}
 	}
 
 private:
