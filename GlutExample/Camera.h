@@ -10,8 +10,9 @@
 // http://www.binarytides.com/udp-socket-programming-in-winsock/
 #include <stdio.h>
 #include <winsock2.h>
+#include <chrono>
 #include <thread>
-#include <time.h>
+#include <atomic>
 
 
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
@@ -52,7 +53,15 @@ public:
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
+
 	int SoketID;
+	struct sockaddr_in si_other;
+	int slen = sizeof(si_other);
+	char UDPbuf[BUFLEN];
+
+	std::atomic_bool bIsUDPThreadRunning;
+	std::thread UDPThread;
+	int ThreadDelayMS = 0;
 
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
@@ -62,7 +71,9 @@ public:
 		Yaw = yaw;
 		Pitch = pitch;
 		updateCameraVectors();
+
 		SoketID = 0;
+		bIsUDPThreadRunning = false;
 	}
 	// Constructor with scalar values
 	Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
@@ -72,7 +83,9 @@ public:
 		Yaw = yaw;
 		Pitch = pitch;
 		updateCameraVectors();
+
 		SoketID = 0;
+		bIsUDPThreadRunning = false;
 	}
 
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -128,13 +141,29 @@ public:
 			Zoom = 45.0f;
 	}
 
+	void RunCamerasUDPThread()
+	{
+		//start communication
+		while (bIsUDPThreadRunning == true)
+		{
+			//clear the buffer by filling null, it might have previously received data
+			memset(UDPbuf, '\0', BUFLEN);
+			//try to receive some data, this is a blocking call
+			if (recvfrom(SoketID, UDPbuf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			{
+				printf("recvfrom() failed with error code : %d", WSAGetLastError());
+				exit(EXIT_FAILURE);
+			}
+
+			puts(UDPbuf);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(ThreadDelayMS));
+		}
+	}
+
 	//  Listen Cameras UDP packages
 	void ListenCamerasUDP()
 	{
-		struct sockaddr_in si_other;
-		int slen = sizeof(si_other);
-		char buf[BUFLEN];
-		char message[BUFLEN];
 		WSADATA wsa;
 
 		//Initialise winsock
@@ -165,28 +194,26 @@ public:
 			exit(EXIT_FAILURE);
 		}
 
-		//start communication
-		while (1)
+		if (bIsUDPThreadRunning == false)
 		{
-			//clear the buffer by filling null, it might have previously received data
-			memset(buf, '\0', BUFLEN);
-			//try to receive some data, this is a blocking call
-			if (recvfrom(SoketID, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
-			{
-				printf("recvfrom() failed with error code : %d", WSAGetLastError());
-				exit(EXIT_FAILURE);
-			}
-
-			puts(buf);
+			bIsUDPThreadRunning = true;
+			UDPThread = std::thread([this]() { RunCamerasUDPThread(); });
 		}
 	}
 
 	void CloseCamerasUDP()
 	{
-		if (SoketID)
+
+		if (bIsUDPThreadRunning)
 		{
-			closesocket(SoketID);
-			WSACleanup();
+			bIsUDPThreadRunning = false;
+			UDPThread.join();
+
+			if (SoketID)
+			{
+				closesocket(SoketID);
+				WSACleanup();
+			}
 		}
 	}
 
