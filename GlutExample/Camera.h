@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <stdio.h>
+#include <cmath>
 
 // http://www.binarytides.com/udp-socket-programming-in-winsock/
 #include <stdio.h>
@@ -68,6 +69,22 @@ public:
 	glm::vec3 LeftEye = glm::vec3(3.f, 0.f, 160.f);
 	glm::vec3 RightEye = glm::vec3(-3.f, 0.f, 160.f);
 
+	float ScreenWidth = 3840.f;
+	float ScreenHight = 2160.f;
+	float ScreenSizeInch = 65.f;
+	float NearClipPlane = 0.1f;
+	float FarClipPlane = 100.f;
+
+
+	float pixelsize_cm;
+	float width_cm;
+	float height_cm;
+
+	float zoff;
+	glm::vec3 pa;
+	glm::vec3 pb;
+	glm::vec3 pc;
+
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 	{
@@ -79,18 +96,20 @@ public:
 
 		SoketID = 0;
 		bIsUDPThreadRunning = false;
-	}
-	// Constructor with scalar values
-	Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
-	{
-		Position = glm::vec3(posX, posY, posZ);
-		WorldUp = glm::vec3(upX, upY, upZ);
-		Yaw = yaw;
-		Pitch = pitch;
-		updateCameraVectors();
 
-		SoketID = 0;
-		bIsUDPThreadRunning = false;
+
+		pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
+		width_cm = (float)(ScreenWidth * pixelsize_cm);
+		height_cm = (float)(ScreenHight * pixelsize_cm);
+
+		zoff = 0.0f;
+		pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+		pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+		pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
+
+		std::cout << pixelsize_cm << " " << width_cm << " " << height_cm << std::endl;
+		std::cout << glm::to_string(pa) << " " << glm::to_string(pb) << " " << glm::to_string(pc) << std::endl;
+
 	}
 
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -286,10 +305,72 @@ public:
 
 		LeftEye = ConvertCoordToVector(PositionLeftString);
 		RightEye = ConvertCoordToVector(PositionRightString);
+	}
 
-		std::cout << "LeftEye: " << glm::to_string(LeftEye) << std::endl;
-		std::cout << "RightEye: " << glm::to_string(RightEye) << std::endl;
+/*************************MATRIX CALC/*************************/
+	glm::mat4 PerspectiveOffCenter(float left, float right, float bottom, float top, float NearPlane, float FarPlane)
+	{
+		float x = 2.0f * NearPlane / (right - left);
+		float y = 2.0f * NearPlane / (top - bottom);
+		float a = (right + left) / (right - left);
+		float b = (top + bottom) / (top - bottom);
+		float c = -(FarPlane + NearPlane) / (FarPlane - NearPlane);
+		float d = -(2.0f * FarPlane * NearPlane) / (FarPlane - NearPlane);
+		float e = -1.0f;
 
+		glm::mat4 m;
+		m[0][0] = x;
+		m[0][1] = 0.f;
+		m[0][2] = a;
+		m[0][3] = 0.f;
+		m[1][0] = 0.f;
+		m[1][1] = y;
+		m[1][2] = b;
+		m[1][3] = 0.f;
+		m[2][0] = 0.f;
+		m[2][1] = 0.f;
+		m[2][2] = c;
+		m[2][3] = d;
+		m[3][0] = 0.f;
+		m[3][1] = 0.f;
+		m[3][2] = e;
+		m[3][3] = 0.f;
+		return m;
+	}
+
+
+	glm::mat4 GeneralizedPerspectiveProjection(glm::vec3 pa, glm::vec3 pb, glm::vec3 pc, glm::vec3 pe, float NearPlane, float FarPlane)
+	{
+		glm::vec3 va, vb, vc;
+		glm::vec3 vr, vu, vn;
+
+		float left, right, bottom, top, eyedistance;
+
+		vr = pb - pa;
+		vr = glm::normalize(vr);
+		vu = pc - pa;
+		vr = glm::normalize(vr);
+		vn = glm::cross(vr, vu);
+		vn = glm::normalize(vn);
+
+
+		//Calculate the vector from eye (pe) to screen corners (pa, pb, pc)
+		va = pa - pe;
+		vb = pb - pe;
+		vc = pc - pe;
+
+		//Get the distance;; from the eye to the screen plane
+		eyedistance = -(glm::dot(va, vn));
+
+		//Get the varaibles for the off center projection
+		left = (glm::dot(vr, va) * NearPlane) / eyedistance;
+		right = (glm::dot(vr, vb) * NearPlane) / eyedistance;
+		bottom = (glm::dot(vu, va) * NearPlane) / eyedistance;
+		top = (glm::dot(vu, vc) * NearPlane) / eyedistance;
+
+
+		//Get this projection
+		return PerspectiveOffCenter(left, right, bottom, top, NearPlane, FarPlane);
 	}
 
 private:
