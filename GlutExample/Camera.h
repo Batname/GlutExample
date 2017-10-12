@@ -3,8 +3,10 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <vector>
+#include <iostream>
 #include <stdio.h>
 
 // http://www.binarytides.com/udp-socket-programming-in-winsock/
@@ -62,6 +64,9 @@ public:
 	std::atomic_bool bIsUDPThreadRunning;
 	std::thread UDPThread;
 	int ThreadDelayMS = 0;
+
+	glm::vec3 LeftEye = glm::vec3(3.f, 0.f, 160.f);
+	glm::vec3 RightEye = glm::vec3(-3.f, 0.f, 160.f);
 
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
@@ -155,7 +160,7 @@ public:
 				exit(EXIT_FAILURE);
 			}
 
-			puts(UDPbuf);
+			ParseUDPString(UDPbuf);
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(ThreadDelayMS));
 		}
@@ -215,6 +220,76 @@ public:
 				WSACleanup();
 			}
 		}
+	}
+
+	glm::vec3 ConvertCoordToVector(const std::string& EyeString)
+	{
+		std::string TempString = "";
+		glm::vec3 PositionVector;
+
+		int i;
+		bool IsXCoord = true;
+
+		for (i = 0; i <= EyeString.length(); i++)
+		{
+			if (*(EyeString.c_str() + i) == ',')
+			{
+				if (IsXCoord)
+				{
+					PositionVector.x = std::stof(TempString);
+				}
+				else
+				{
+					PositionVector.y = std::stof(TempString);
+				}
+
+				// Reset string
+				TempString = "";
+
+				IsXCoord = false;
+
+				// skip this iteration
+				continue;
+			}
+
+			// last coordinate
+			if (EyeString.length() == i)
+			{
+				PositionVector.z = std::stof(TempString);
+				break;
+			}
+			TempString += *(EyeString.c_str() + i);
+		}
+
+		return PositionVector /= 10.f;
+	}
+
+	void ParseUDPString(const char* Buffer)
+	{
+		std::string BufferString(Buffer);
+
+		std::string PositionLeftStartString = "<PositionLeft>";
+		std::string PositionLeftStartEnd = "</PositionLeft>";
+		int PositionLeftStart = BufferString.find(PositionLeftStartString) + PositionLeftStartString.length();
+		int PositionLeftEnd = BufferString.find(PositionLeftStartEnd);
+		int PositionLeftCount = PositionLeftEnd - PositionLeftStart;
+
+		std::string PositionRightStartEnd = "</PositionRight>";
+		std::string PositionRightStartString = "<PositionRight>";
+		int PositionRightStart = BufferString.find(PositionRightStartString) + PositionRightStartString.length();
+		int PositionRightEnd = BufferString.find(PositionRightStartEnd);
+		int PositionRightCount = PositionRightEnd - PositionRightStart;
+
+		std::string PositionLeftString = BufferString.substr(PositionLeftStart, PositionLeftCount);
+		std::string PositionRightString = BufferString.substr(PositionRightStart, PositionRightCount);
+
+
+		LeftEye = ConvertCoordToVector(PositionLeftString);
+		RightEye = ConvertCoordToVector(PositionRightString);
+
+		std::cout << "LeftEye: " << glm::to_string(LeftEye) << std::endl;
+		std::cout << "RightEye: " << glm::to_string(RightEye) << std::endl;
+
 	}
 
 private:
