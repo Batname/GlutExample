@@ -104,7 +104,7 @@ public:
 		bIsUDPThreadRunning = false;
 
 		NearPlane = 0.1f;
-		FarPlane = 100.f;
+		FarPlane = 10000.f;
 
 		pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
 		width_cm = (float)(ScreenWidth * pixelsize_cm);
@@ -359,7 +359,7 @@ public:
 		vr = pb - pa;
 		vr = glm::normalize(vr);
 		vu = pc - pa;
-		vr = glm::normalize(vr);
+		vu = glm::normalize(vu);
 		vn = glm::cross(vr, vu);
 		vn = glm::normalize(vn);
 
@@ -379,8 +379,11 @@ public:
 		top = (glm::dot(vu, vc) * NearPlane) / eyedistance;
 
 
+		glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, NearPlane, FarPlane);
+
 		//Get this projection
-		return PerspectiveOffCenter(left, right, bottom, top, NearPlane, FarPlane);
+		return frustum_m;
+		//return PerspectiveOffCenter(left, right, bottom, top, NearPlane, FarPlane);
 	}
 
 private:

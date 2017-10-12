@@ -346,34 +346,35 @@ unsigned int loadTexture(char const * path)
 void MainRender(bool LeftEye)
 {
 	glm::mat4 PerspectiveProjection;
+	// view/projection transformations
+	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
 	if (LeftEye)
 	{
 		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
 
-		// Set camera Position
-		std::cout << "LeftEye camera->Positio" << glm::to_string(camera->Position) << std::endl;
-		std::cout << "LeftEye camera->LeftEye" << glm::to_string(glm::normalize(camera->LeftEye)) << std::endl;
+		// Set camera Offset
 		camera->CameraOffset = glm::normalize(camera->LeftEye);
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->LeftEye);
-		std::cout <<  "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		std::cout << "projection " << glm::to_string(projection) << std::endl;
+		projection = PerspectiveProjection;
+
 	}
 	else
 	{
 		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
 
-		// Set camera Position
-		std::cout << "RightEye camera->Positio" << glm::to_string(camera->Position) << std::endl;
-		std::cout << "RightEye camera->RightEye" << glm::to_string(glm::normalize(camera->RightEye)) << std::endl;
+		// Set camera Offset
 		camera->CameraOffset = glm::normalize(camera->RightEye);
-
-
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->RightEye);
 		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		std::cout << "projection " << glm::to_string(projection) << std::endl;
+		projection = PerspectiveProjection;
 	}
 
 
@@ -438,10 +439,10 @@ void MainRender(bool LeftEye)
 	lightingShader->setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
 	lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
-	// view/projection transformations
-	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	// Global transformation matrix
 	glm::mat4 view = camera->GetViewMatrix();
-	lightingShader->setMat4("projection", projection);
+
+	lightingShader->setMat4("projection", PerspectiveProjection);
 	lightingShader->setMat4("view", view);
 
 	// world transformation
@@ -471,7 +472,7 @@ void MainRender(bool LeftEye)
 
 	// also draw the lamp object(s)
 	lampShader->use();
-	lampShader->setMat4("projection", projection);
+	lampShader->setMat4("projection", PerspectiveProjection);
 	lampShader->setMat4("view", view);
 
 	// we now draw as many light bulbs as we have point lights.
