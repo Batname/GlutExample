@@ -16,13 +16,14 @@
 #include "Shader.h"
 
 #include <iostream>
+#include <cmath>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
-void MainRender(bool LeftEye);
+void MainRender(bool IsLeftEye);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -37,6 +38,16 @@ Camera* camera;
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
+float scaleFarPlane = 100.f;
+float scaleNearPlane = 0.01f;
+int ParallaxScale = 5;
+float ScreenWidth = 3840.f;
+float ScreenHight = 2160.f;
+float ScreenSizeInch = 65.f;
+
+float NearPlane = 0.1f;
+float FarPlane = 10000.f;
 
 // timing
 float deltaTime = 0.0f;
@@ -343,13 +354,39 @@ unsigned int loadTexture(char const * path)
 	return textureID;
 }
 
-void MainRender(bool LeftEye)
+void MainRender(bool IsLeftEye)
 {
 	glm::mat4 PerspectiveProjection;
 	// view/projection transformations
 	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
-	if (LeftEye)
+
+	float pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
+	float width_cm = (float)(ScreenWidth * pixelsize_cm);
+	float height_cm = (float)(ScreenHight * pixelsize_cm);
+
+	glm::vec3 LeftEye = camera->LeftEye;
+	glm::vec3 RightEye = camera->RightEye;
+
+	NearPlane = scaleNearPlane * 0.25f / height_cm * 100.f;
+	FarPlane = scaleFarPlane * 2.1f / height_cm * 100.f;
+
+
+	// setup camera paralax planes
+	LeftEye *= ParallaxScale;
+	RightEye *= ParallaxScale;
+	width_cm *= ParallaxScale;
+	height_cm *= ParallaxScale;
+	NearPlane *= ParallaxScale;
+	FarPlane *= ParallaxScale;
+
+	float zoff = 0.0f;
+	glm::vec3 pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+	glm::vec3 pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+	glm::vec3 pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
+
+
+	if (IsLeftEye)
 	{
 		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
 
@@ -357,7 +394,7 @@ void MainRender(bool LeftEye)
 		camera->CameraOffset = glm::normalize(camera->LeftEye);
 
 		// Get perspective matrix here
-		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->LeftEye);
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
 		std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 		std::cout << "projection " << glm::to_string(projection) << std::endl;
 		projection = PerspectiveProjection;
@@ -370,8 +407,9 @@ void MainRender(bool LeftEye)
 		// Set camera Offset
 		camera->CameraOffset = glm::normalize(camera->RightEye);
 
+
 		// Get perspective matrix here
-		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(camera->RightEye);
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEye, NearPlane, FarPlane);
 		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 		std::cout << "projection " << glm::to_string(projection) << std::endl;
 		projection = PerspectiveProjection;

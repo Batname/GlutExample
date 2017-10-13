@@ -71,25 +71,6 @@ public:
 	glm::vec3 LeftEye = glm::vec3(3.f, 0.f, 160.f);
 	glm::vec3 RightEye = glm::vec3(-3.f, 0.f, 160.f);
 
-	float ScreenWidth = 3840.f;
-	float ScreenHight = 2160.f;
-	float ScreenSizeInch = 65.f;
-	float NearClipPlane = 0.1f;
-	float FarClipPlane = 100.f;
-
-
-	float pixelsize_cm;
-	float width_cm;
-	float height_cm;
-
-	float zoff;
-	glm::vec3 pa;
-	glm::vec3 pb;
-	glm::vec3 pc;
-	
-	float NearPlane;
-	float FarPlane;
-
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 	{
@@ -102,22 +83,6 @@ public:
 
 		SoketID = 0;
 		bIsUDPThreadRunning = false;
-
-		NearPlane = 0.1f;
-		FarPlane = 10000.f;
-
-		pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
-		width_cm = (float)(ScreenWidth * pixelsize_cm);
-		height_cm = (float)(ScreenHight * pixelsize_cm);
-
-		zoff = 0.0f;
-		pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
-		pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
-		pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
-
-		std::cout << pixelsize_cm << " " << width_cm << " " << height_cm << std::endl;
-		std::cout << glm::to_string(pa) << " " << glm::to_string(pb) << " " << glm::to_string(pc) << std::endl;
-
 	}
 
 	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -349,7 +314,7 @@ public:
 	}
 
 
-	glm::mat4 GeneralizedPerspectiveProjection(const glm::vec3& pe)
+	glm::mat4 GeneralizedPerspectiveProjection(glm::vec3 pa, glm::vec3 pb, glm::vec3 pc, glm::vec3 pe, float Near, float Far)
 	{
 		glm::vec3 va, vb, vc;
 		glm::vec3 vr, vu, vn;
@@ -373,17 +338,17 @@ public:
 		eyedistance = -(glm::dot(va, vn));
 
 		//Get the varaibles for the off center projection
-		left = (glm::dot(vr, va) * NearPlane) / eyedistance;
-		right = (glm::dot(vr, vb) * NearPlane) / eyedistance;
-		bottom = (glm::dot(vu, va) * NearPlane) / eyedistance;
-		top = (glm::dot(vu, vc) * NearPlane) / eyedistance;
+		left = (glm::dot(vr, va) * Near) / eyedistance;
+		right = (glm::dot(vr, vb) * Near) / eyedistance;
+		bottom = (glm::dot(vu, va) * Near) / eyedistance;
+		top = (glm::dot(vu, vc) * Near) / eyedistance;
 
 
-		glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, NearPlane, FarPlane);
+		glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, Near, Far);
 
 		//Get this projection
 		return frustum_m;
-		//return PerspectiveOffCenter(left, right, bottom, top, NearPlane, FarPlane);
+		//return PerspectiveOffCenter(left, right, bottom, top, Near, Far);
 	}
 
 private:
