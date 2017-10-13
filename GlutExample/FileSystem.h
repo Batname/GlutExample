@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdlib>
 
-const char * logl_root = "D:/OpenGL/GlutExample";
+const char * logl_root = "C:/Users/EE3D-Demo-1/Desktop/OpenGL/GlutExample";
 
 class FileSystem
 {

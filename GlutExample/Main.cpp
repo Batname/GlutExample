@@ -42,8 +42,10 @@ bool firstMouse = true;
 float scaleFarPlane = 100.f;
 float scaleNearPlane = 0.01f;
 float ParallaxScale = 3.f;
-float ScreenWidth = 3840.f;
-float ScreenHight = 2160.f;
+//float ScreenWidth = 5120.f;
+//float ScreenHight = 1440.f;
+float ScreenWidth = 5112.f;
+float ScreenHight = 1368.f;
 float ScreenSizeInch = 65.f;
 
 float NearPlane = 0.1f;
@@ -151,6 +153,7 @@ int main()
 
 	// glfw window creation
 	// --------------------
+	//GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", glfwGetPrimaryMonitor(), NULL);
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
@@ -284,6 +287,9 @@ void processInput(GLFWwindow *window)
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
+	std::cout << "width: " << width << std::endl;
+	std::cout << "height: " << height << std::endl;
+
 	CurrentWidth = width;
 	CurrentHeight = height;
 }
@@ -392,12 +398,12 @@ void MainRender(bool IsLeftEye)
 
 		// Set camera Offset
 		camera->CameraOffset = glm::normalize(camera->LeftEye) * ParallaxScale;
-		std::cout << "LeftEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
+		//std::cout << "LeftEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
 
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
-		std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 		projection = PerspectiveProjection;
 
 	}
@@ -407,12 +413,12 @@ void MainRender(bool IsLeftEye)
 
 		// Set camera Offset
 		camera->CameraOffset = glm::normalize(camera->RightEye) * ParallaxScale;
-		std::cout << "RightEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
+		//std::cout << "RightEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
 
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEye, NearPlane, FarPlane);
-		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
 		projection = PerspectiveProjection;
 	}
 

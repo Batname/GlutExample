@@ -71,8 +71,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\OpenGL\GlutExample\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\OpenGL\GlutExample\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\EE3D-Demo-1\Desktop\OpenGL\GlutExample\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\EE3D-Demo-1\Desktop\OpenGL\GlutExample\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
