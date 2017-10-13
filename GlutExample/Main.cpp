@@ -391,7 +391,9 @@ void MainRender(bool IsLeftEye)
 		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
 
 		// Set camera Offset
-		camera->CameraOffset = glm::normalize(camera->LeftEye);
+		camera->CameraOffset = glm::normalize(camera->LeftEye) * ParallaxScale;
+		std::cout << "LeftEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
+
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
@@ -404,7 +406,8 @@ void MainRender(bool IsLeftEye)
 		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
 
 		// Set camera Offset
-		camera->CameraOffset = glm::normalize(camera->RightEye);
+		camera->CameraOffset = glm::normalize(camera->RightEye) * ParallaxScale;
+		std::cout << "RightEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
 
 
 		// Get perspective matrix here
