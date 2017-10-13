@@ -285,32 +285,26 @@ public:
 /*************************MATRIX CALC/*************************/
 	glm::mat4 PerspectiveOffCenter(float left, float right, float bottom, float top, float NearPlane, float FarPlane)
 	{
-		float x = 2.0f * NearPlane / (right - left);
-		float y = 2.0f * NearPlane / (top - bottom);
-		float a = (right + left) / (right - left);
-		float b = (top + bottom) / (top - bottom);
-		float c = -(FarPlane + NearPlane) / (FarPlane - NearPlane);
-		float d = -(2.0f * FarPlane * NearPlane) / (FarPlane - NearPlane);
-		float e = -1.0f;
+		glm::mat4 Result;
 
-		glm::mat4 m;
-		m[0][0] = x;
-		m[0][1] = 0.f;
-		m[0][2] = a;
-		m[0][3] = 0.f;
-		m[1][0] = 0.f;
-		m[1][1] = y;
-		m[1][2] = b;
-		m[1][3] = 0.f;
-		m[2][0] = 0.f;
-		m[2][1] = 0.f;
-		m[2][2] = c;
-		m[2][3] = d;
-		m[3][0] = 0.f;
-		m[3][1] = 0.f;
-		m[3][2] = e;
-		m[3][3] = 0.f;
-		return m;
+		Result[0][0] = 2.0f * NearPlane / (right - left);
+		Result[0][1] = 0.0f;
+		Result[0][2] = 0.0f;
+		Result[0][3] = 0.0f;
+		Result[1][0] = 0.0f;
+		Result[1][1] = 2.0f * NearPlane / (top - bottom);
+		Result[1][2] = 0.0f;
+		Result[1][3] = 0.0f;
+		Result[2][0] = (right + left) / (right - left);
+		Result[2][1] = (top + bottom) / (top - bottom);
+		Result[2][2] = 0.0f;
+		Result[2][3] = -1.0f;
+		Result[3][0] = 0.0f;
+		Result[3][1] = 0.0f;
+		Result[3][2] = -NearPlane;
+		Result[3][3] = 0.0f;
+
+		return Result;
 	}
 
 
@@ -344,11 +338,10 @@ public:
 		top = (glm::dot(vu, vc) * Near) / eyedistance;
 
 
-		glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, Near, Far);
-
 		//Get this projection
-		return frustum_m;
-		//return PerspectiveOffCenter(left, right, bottom, top, Near, Far);
+		//glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, Near, Far);
+		//return frustum_m;
+		return PerspectiveOffCenter(left, right, bottom, top, Near, Far);
 	}
 
 private:

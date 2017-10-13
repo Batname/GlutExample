@@ -41,7 +41,7 @@ bool firstMouse = true;
 
 float scaleFarPlane = 100.f;
 float scaleNearPlane = 0.01f;
-int ParallaxScale = 5;
+float ParallaxScale = 3.f;
 float ScreenWidth = 3840.f;
 float ScreenHight = 2160.f;
 float ScreenSizeInch = 65.f;
@@ -396,7 +396,6 @@ void MainRender(bool IsLeftEye)
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
 		std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
-		std::cout << "projection " << glm::to_string(projection) << std::endl;
 		projection = PerspectiveProjection;
 
 	}
@@ -411,7 +410,6 @@ void MainRender(bool IsLeftEye)
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEye, NearPlane, FarPlane);
 		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
-		std::cout << "projection " << glm::to_string(projection) << std::endl;
 		projection = PerspectiveProjection;
 	}
 
