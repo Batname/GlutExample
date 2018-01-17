@@ -18,6 +18,9 @@
 #include <iostream>
 #include <cmath>
 
+// https://www.packtpub.com/books/content/rendering-stereoscopic-3d-models-using-opengl
+// http://paulbourke.net/stereographics/stereorender/
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -42,6 +45,7 @@ bool firstMouse = true;
 float scaleFarPlane = 100.f;
 float scaleNearPlane = 0.01f;
 float ParallaxScale = 3.f;
+float VirtualCameraOffsetZ = 300.f;
 float ScreenWidth = 3840.f;
 float ScreenHight = 2160.f;
 float ScreenSizeInch = 65.f;
@@ -110,7 +114,7 @@ float vertices[] = {
 };
 // positions all containers
 glm::vec3 cubePositions[] = {
-	glm::vec3(0.0f,  0.0f,  0.0f),
+	glm::vec3(0.0f,  0.0f,  2.0f),
 	glm::vec3(2.0f,  5.0f, -15.0f),
 	glm::vec3(-1.5f, -2.2f, -2.5f),
 	glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -123,10 +127,10 @@ glm::vec3 cubePositions[] = {
 };
 // positions of the point lights
 glm::vec3 pointLightPositions[] = {
-	glm::vec3(0.7f,  0.2f,  2.0f),
+	glm::vec3(0.7f,  3.2f,  -2.0f),
 	glm::vec3(2.3f, -3.3f, -4.0f),
 	glm::vec3(-4.0f,  2.0f, -12.0f),
-	glm::vec3(0.0f,  0.0f, -3.0f)
+	glm::vec3(0.0f,  2.0f, 3.0f)
 };
 
 unsigned int VBO, cubeVAO;
@@ -135,7 +139,7 @@ unsigned int lightVAO;
 int main()
 {
 	// start listening UDP packages
-	camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+	camera = new Camera(glm::vec3(0.0f, 0.0f, 100.0f / 100.f));
 	camera->ListenCamerasUDP();
 
 	// glfw: initialize and configure
@@ -267,6 +271,8 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
+	return;
+
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
@@ -292,6 +298,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	return;
+
 	if (firstMouse)
 	{
 		lastX = xpos;
@@ -368,59 +376,56 @@ void MainRender(bool IsLeftEye)
 	glm::vec3 LeftEye = camera->LeftEye;
 	glm::vec3 RightEye = camera->RightEye;
 
-	NearPlane = scaleNearPlane * 0.25f / height_cm * 100.f;
-	FarPlane = scaleFarPlane * 2.1f / height_cm * 100.f;
-
+	//NearPlane = scaleNearPlane * 0.25f / height_cm * 100.f;
+	//FarPlane = scaleFarPlane * 2.1f / height_cm * 100.f;
 
 	// setup camera paralax planes
 	LeftEye *= ParallaxScale;
 	RightEye *= ParallaxScale;
 	width_cm *= ParallaxScale;
 	height_cm *= ParallaxScale;
-	NearPlane *= ParallaxScale;
-	FarPlane *= ParallaxScale;
 
 	float zoff = 0.0f;
 	glm::vec3 pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
 	glm::vec3 pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
 	glm::vec3 pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
 
-
+	glm::vec3 EyeViewPointOffset_inUnits;
 	if (IsLeftEye)
 	{
 		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
 
-		// Set camera Offset
-		camera->CameraOffset = glm::normalize(camera->LeftEye) * ParallaxScale;
-		std::cout << "LeftEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
-
-
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
-		std::cout << "LeftEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(LeftEye) << std::endl;
 		projection = PerspectiveProjection;
 
+		// 1 unit == 1m == 100 cm
+		EyeViewPointOffset_inUnits = LeftEye / 100.f;
+		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
+		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
 	}
 	else
 	{
 		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
 
-		// Set camera Offset
-		camera->CameraOffset = glm::normalize(camera->RightEye) * ParallaxScale;
-		std::cout << "RightEye CameraOffset" << glm::to_string(camera->CameraOffset) << std::endl;
-
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEye, NearPlane, FarPlane);
-		std::cout << "RightEye PerspectiveProjection" << glm::to_string(PerspectiveProjection) << std::endl;
+		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(RightEye) << std::endl;
 		projection = PerspectiveProjection;
+
+		// 1 unit == 1m == 100 cm
+		EyeViewPointOffset_inUnits = RightEye / 100.f;
+		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
+		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
 	}
 
 
 
 	// be sure to activate shader when setting uniforms/drawing objects
 	lightingShader->use();
-	lightingShader->setVec3("viewPos", camera->Position);
+	lightingShader->setVec3("viewPos", camera->Position + EyeViewPointOffset_inUnits);
 	lightingShader->setFloat("material.shininess", 32.0f);
 
 	/*
@@ -467,7 +472,7 @@ void MainRender(bool IsLeftEye)
 	lightingShader->setFloat("pointLights[3].linear", 0.09);
 	lightingShader->setFloat("pointLights[3].quadratic", 0.032);
 	// spotLight
-	lightingShader->setVec3("spotLight.position", camera->Position);
+	//lightingShader->setVec3("spotLight.position", camera->Position + EyeViewPointOffset_inUnits);
 	lightingShader->setVec3("spotLight.direction", camera->Front);
 	lightingShader->setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
 	lightingShader->setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
@@ -479,7 +484,15 @@ void MainRender(bool IsLeftEye)
 	lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
 	// Global transformation matrix
-	glm::mat4 view = camera->GetViewMatrix();
+	glm::mat4 view;
+	glm::vec3 FacePosOriginal = (camera->LeftEye - camera->RightEye) / 2.f;
+	glm::vec3 EyeSeparation;
+	EyeSeparation.x = (camera->RightEye.x - camera->LeftEye.x) / 2.f;
+	EyeSeparation.y = (camera->RightEye.y - camera->LeftEye.y) / 2.f;
+	EyeSeparation.z = (camera->RightEye.z - camera->LeftEye.z) / 2.f;
+
+	//http://paulbourke.net/stereographics/stereorender/
+	view = camera->GetViewMatrix(EyeViewPointOffset_inUnits);
 
 	lightingShader->setMat4("projection", PerspectiveProjection);
 	lightingShader->setMat4("view", view);
@@ -501,6 +514,13 @@ void MainRender(bool IsLeftEye)
 	{
 		// calculate the model matrix for each object and pass it to shader before drawing
 		glm::mat4 model;
+
+		// scale if cube 0;
+		if (i == 0)
+		{
+			model = glm::scale(model, glm::vec3(0.2, 0.2, 0.2));
+		}
+
 		model = glm::translate(model, cubePositions[i]);
 		float angle = 20.0f * i;
 		model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));

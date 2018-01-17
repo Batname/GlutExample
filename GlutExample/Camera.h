@@ -44,8 +44,6 @@ class Camera
 {
 public:
 	// Camera Attributes
-	glm::vec3 CameraOffset;
-
 	glm::vec3 Position;
 	glm::vec3 Front;
 	glm::vec3 Up;
@@ -68,13 +66,12 @@ public:
 	std::thread UDPThread;
 	int ThreadDelayMS = 0;
 
-	glm::vec3 LeftEye = glm::vec3(3.f, 0.f, 160.f);
-	glm::vec3 RightEye = glm::vec3(-3.f, 0.f, 160.f);
+	glm::vec3 LeftEye = glm::vec3(-3.f, 0.f, 160.f);
+	glm::vec3 RightEye = glm::vec3(3.f, 0.f, 160.f);
 
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 	{
-		CameraOffset = glm::normalize(glm::vec3(0.f, 0.f, 160.f));
 		Position = position;
 		WorldUp = up;
 		Yaw = yaw;
@@ -85,12 +82,66 @@ public:
 		bIsUDPThreadRunning = false;
 	}
 
-	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
-	glm::mat4 GetViewMatrix()
+	glm::mat4 MylookAtRH
+	(
+		glm::vec3 const & eye,
+		glm::vec3 const & center,
+		glm::vec3 const & up
+	)
 	{
-		// CameraOffset - it is data from camera
+		glm::vec3 const f(normalize(center - eye));
+		glm::vec3 const s(normalize(cross(f, up)));
+		glm::vec3 const u(cross(s, f));
 
-		return glm::lookAt(Position + CameraOffset, Position + CameraOffset + Front, Up);
+		glm::mat4 Result(1);
+		Result[0][0] = s.x;
+		Result[1][0] = s.y;
+		Result[2][0] = s.z;
+		Result[0][1] = u.x;
+		Result[1][1] = u.y;
+		Result[2][1] = u.z;
+		Result[0][2] = -f.x;
+		Result[1][2] = -f.y;
+		Result[2][2] = -f.z;
+		Result[3][0] = -dot(s, eye);
+		Result[3][1] = -dot(u, eye);
+		Result[3][2] = dot(f, eye);
+		return Result;
+	}
+
+	glm::mat4 MylookAtLH
+	(
+		glm::vec3 const & eye,
+		glm::vec3 const & center,
+		glm::vec3 const & up
+	)
+	{
+		glm::vec3 const f(normalize(center - eye));
+		glm::vec3 const s(normalize(cross(up, f)));
+		glm::vec3 const u(cross(f, s));
+
+		glm::mat4 Result(1);
+		Result[0][0] = s.x;
+		Result[1][0] = s.y;
+		Result[2][0] = s.z;
+		Result[0][1] = u.x;
+		Result[1][1] = u.y;
+		Result[2][1] = u.z;
+		Result[0][2] = f.x;
+		Result[1][2] = f.y;
+		Result[2][2] = f.z;
+		Result[3][0] = -dot(s, eye);
+		Result[3][1] = -dot(u, eye);
+		Result[3][2] = -dot(f, eye);
+		return Result;
+	}
+
+	// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
+	glm::mat4 GetViewMatrix(glm::vec3 EyeViewPointOffset_inUnits)
+	{
+		glm::mat4 view = MylookAtRH(Position + EyeViewPointOffset_inUnits, Position + Front + EyeViewPointOffset_inUnits, Up);
+
+		return view;
 	}
 
 	// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -105,6 +156,7 @@ public:
 			Position -= Right * velocity;
 		if (direction == RIGHT)
 			Position += Right * velocity;
+
 	}
 
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -339,9 +391,8 @@ public:
 
 
 		//Get this projection
-		//glm::mat4 frustum_m = glm::frustum(left, right, bottom, top, Near, Far);
-		//return frustum_m;
-		return PerspectiveOffCenter(left, right, bottom, top, Near, Far);
+		//return PerspectiveOffCenter(left, right, bottom, top, Near, Far);
+		return glm::frustum(left, right, bottom, top, Near, Far);
 	}
 
 private:
