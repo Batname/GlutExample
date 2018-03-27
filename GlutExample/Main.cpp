@@ -1,3 +1,6 @@
+// https://www.packtpub.com/books/content/rendering-stereoscopic-3d-models-using-opengl
+// http://paulbourke.net/stereographics/stereorender/
+
 // GLEW
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -18,126 +21,207 @@
 #include <iostream>
 #include <cmath>
 
-// https://www.packtpub.com/books/content/rendering-stereoscopic-3d-models-using-opengl
-// http://paulbourke.net/stereographics/stereorender/
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-unsigned int loadTexture(const char *path);
-void MainRender(bool IsLeftEye);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-// current widows size
-unsigned int CurrentWidth = SCR_WIDTH;
-unsigned int CurrentHeight = SCR_HEIGHT;
-
-// camera
-Camera* camera;
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
-
-float scaleFarPlane = 100.f;
-float scaleNearPlane = 0.01f;
-float ParallaxScale = 3.f;
-float VirtualCameraOffsetZ = 300.f;
-float ScreenWidth = 3840.f;
-float ScreenHight = 2160.f;
-float ScreenSizeInch = 65.f;
-
-float NearPlane = 0.1f;
-float FarPlane = 10000.f;
-
-// timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-
-unsigned int diffuseMap;
-unsigned int specularMap;
-
-Shader* lightingShader;
-Shader* lampShader;
-
-// set up vertex data (and buffer(s)) and configure vertex attributes
-// ------------------------------------------------------------------
-float vertices[] = {
-	// positions          // normals           // texture coords
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-	0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-	0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-	0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-	0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-	0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-	0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-	0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-	0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-	0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-	0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-	0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-	0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-	0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-	0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-	0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-	0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-	0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
-};
-// positions all containers
-glm::vec3 cubePositions[] = {
-	glm::vec3(0.0f,  0.0f,  2.0f),
-	glm::vec3(2.0f,  5.0f, -15.0f),
-	glm::vec3(-1.5f, -2.2f, -2.5f),
-	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f, -3.5f),
-	glm::vec3(-1.7f,  3.0f, -7.5f),
-	glm::vec3(1.3f, -2.0f, -2.5f),
-	glm::vec3(1.5f,  2.0f, -2.5f),
-	glm::vec3(1.5f,  0.2f, -1.5f),
-	glm::vec3(-1.3f,  1.0f, -1.5f)
-};
-// positions of the point lights
-glm::vec3 pointLightPositions[] = {
-	glm::vec3(0.7f,  3.2f,  -2.0f),
-	glm::vec3(2.3f, -3.3f, -4.0f),
-	glm::vec3(-4.0f,  2.0f, -12.0f),
-	glm::vec3(0.0f,  2.0f, 3.0f)
-};
-
-unsigned int VBO, cubeVAO;
-unsigned int lightVAO;
-
-int main()
+class App
 {
+public:
+	App();
+	~App();
+
+	void Start();
+
+public:
+	static App* app;
+
+private:
+	void LoadCubes();
+	void LoadLight();
+	void LoadDebugPoint();
+
+	void RenderCubes();
+	void RenderLight();
+	void RenderDebugPoint();
+
+private:
+	static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+	static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+	static void processInput(GLFWwindow *window);
+	static unsigned int loadTexture(const char *path);
+	void MainRender(bool IsLeftEye);
+private:
+	// settings
+	const unsigned int SCR_WIDTH = 800;
+	const unsigned int SCR_HEIGHT = 600;
+
+	// current widows size
+	unsigned int CurrentWidth = SCR_WIDTH;
+	unsigned int CurrentHeight = SCR_HEIGHT;
+
+	// camera
+	Camera* camera;
+	float lastX = SCR_WIDTH / 2.0f;
+	float lastY = SCR_HEIGHT / 2.0f;
+	bool firstMouse = true;
+
+	float scaleFarPlane = 100.f;
+	float scaleNearPlane = 0.01f;
+	float ParallaxScale = 2.f;
+	float VirtualCameraOffsetZ = 200.f;
+	float ScreenWidth = 3840.f;
+	float ScreenHight = 2160.f;
+	float ScreenSizeInch = 65.f;
+
+	float NearPlane = 0.1f;
+	float FarPlane = 10000.f;
+
+	// timing
+	float deltaTime = 0.0f;
+	float lastFrame = 0.0f;
+
+	// lighting
+	glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
+
+	unsigned int diffuseMap;
+	unsigned int specularMap;
+
+	Shader* lightingShader;
+	Shader* lampShader;
+	Shader* DebugPointShader;
+
+// Geometry
+private:
+	// set up vertex data (and buffer(s)) and configure vertex attributes
+	// ------------------------------------------------------------------
+	float CubeVertices[288] = {
+		// positions          // normals           // texture coords
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+		0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+		0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+		0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+	};
+
+	float DebugPointVertices[12] =
+	{
+		0.5f,  0.5f, 0.0f,  // top right
+		0.5f, -0.5f, 0.0f,  // bottom right
+		-0.5f, -0.5f, 0.0f,  // bottom left
+		-0.5f,  0.5f, 0.0f   // top left 
+	};
+
+	unsigned int DebugPointIndices[6] =
+	{
+		0, 1, 3,   // first triangle
+		1, 2, 3    // second triangle
+	};
+
+	// positions all containers
+	glm::vec3 cubePositions[10] = {
+		glm::vec3(0.0f,  0.0f,  2.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+	// positions of the point lights
+	glm::vec3 pointLightPositions[4] = {
+		glm::vec3(0.7f,  3.2f,  -2.0f),
+		glm::vec3(2.3f, -3.3f, -4.0f),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3(0.0f,  2.0f, 3.0f)
+	};
+
+// GLFW
+private:
+	GLFWwindow* window;
+// Screen
+private:
+	float pixelsize_cm;
+	float width_cm;
+	float height_cm;
+
+// Eye Tracking data
+private:
+	glm::vec3 LeftEye;
+	glm::vec3 RightEye;
+	glm::vec3 MiddleEye;
+
+// Parralax scale
+private:
+	glm::vec3 LeftEyeScaled;
+	glm::vec3 RightEyeScaled;
+	float width_cm_scaled;
+	float height_cm_scaled;
+
+// Eye coords
+private:
+	glm::vec3 EyeViewPointOffset_inUnits;
+	glm::vec3 FacePosOriginal;
+	glm::vec3 EyeSeparation;
+
+// Matrices
+private:
+	glm::mat4 view;
+	glm::mat4 PerspectiveProjection;
+
+// OpenGl buffers
+private:
+	unsigned int cubeVBO, DebugPointVBO;
+	unsigned int lightVAO, cubeVAO, DebugPointVAO;
+	unsigned int DebugPointEBO;
+
+};
+
+// Set global pointer
+App* App::app = nullptr;
+
+App::App()
+{
+	// Set Global poiter first
+	app = this;
+
+
 	// start listening UDP packages
 	camera = new Camera(glm::vec3(0.0f, 0.0f, 100.0f / 100.f));
 	camera->ListenCamerasUDP();
@@ -155,12 +239,12 @@ int main()
 
 	// glfw window creation
 	// --------------------
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
-		return -1;
+		exit(-1);
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -183,13 +267,46 @@ int main()
 	// ------------------------------------
 	lightingShader = new Shader("../resources/shaders/Main.vertex.glsl", "../resources/shaders/Main.fragment.glsl");
 	lampShader = new Shader("../resources/shaders/Lamp.vertex.glsl", "../resources/shaders/Lamp.fragment.glsl");
+	DebugPointShader = new Shader("../resources/shaders/DebugPoint.vertex.glsl", "../resources/shaders/DebugPoint.fragment.glsl");
 
+	// Set screen dementions
+	pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
+	width_cm = (float)(ScreenWidth * pixelsize_cm);
+	height_cm = (float)(ScreenHight * pixelsize_cm);
+
+	// Load Geometry and textures
+	LoadCubes();
+	LoadLight();
+	LoadDebugPoint();
+}
+
+App::~App()
+{
+	// optional: de-allocate all resources once they've outlived their purpose:
+	// ------------------------------------------------------------------------
+	glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteVertexArrays(1, &lightVAO);
+	glDeleteBuffers(1, &cubeVBO);
+	glDeleteBuffers(1, &DebugPointVBO);
+	glDeleteVertexArrays(1, &DebugPointVAO);
+	glDeleteBuffers(1, &DebugPointEBO);
+
+	// glfw: terminate, clearing all previously allocated GLFW resources.
+	// ------------------------------------------------------------------
+	glfwTerminate();
+
+	// Close cameras udp connection
+	camera->CloseCamerasUDP();
+}
+
+void App::LoadCubes()
+{
 	// first, configure the cube's VAO (and VBO)
+	glGenBuffers(1, &cubeVBO);
 	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &VBO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(CubeVertices), CubeVertices, GL_STATIC_DRAW);
 
 	glBindVertexArray(cubeVAO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
@@ -199,133 +316,111 @@ int main()
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	// second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
-	glGenVertexArrays(1, &lightVAO);
-	glBindVertexArray(lightVAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	// note that we update the lamp's position attribute's stride to reflect the updated buffer data
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
 	// load textures (we now use a utility function to keep the code more organized)
 	// -----------------------------------------------------------------------------
 	diffuseMap = loadTexture(FileSystem::getPath("resources/textures/container2.png").c_str());
 	specularMap = loadTexture(FileSystem::getPath("resources/textures/container2_specular.png").c_str());
+}
+
+void App::LoadLight()
+{
+	// second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	// note that we update the lamp's position attribute's stride to reflect the updated buffer data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
 
 	// shader configuration
 	// --------------------
 	lightingShader->use();
 	lightingShader->setInt("material.diffuse", 0);
 	lightingShader->setInt("material.specular", 1);
+}
 
+void App::LoadDebugPoint()
+{
+	// Bind Debug Point
+	glGenVertexArrays(1, &DebugPointVAO);
+	glGenBuffers(1, &DebugPointVBO);
+	glGenBuffers(1, &DebugPointEBO);
+	glBindVertexArray(DebugPointVAO);
 
-	// render loop
-	// -----------
-	while (!glfwWindowShouldClose(window))
-	{
-		// per-frame time logic
-		// --------------------
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+	glBindBuffer(GL_ARRAY_BUFFER, DebugPointVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(DebugPointVertices), DebugPointVertices, GL_STATIC_DRAW);
 
-		// input
-		// -----
-		processInput(window);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, DebugPointEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DebugPointIndices), DebugPointIndices, GL_STATIC_DRAW);
 
-		// render
-		// ------
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
-		// Render for left Eye
-		MainRender(true);
-
-		// Render for right Eye
-		MainRender(false);
-
-
-		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-
-	// optional: de-allocate all resources once they've outlived their purpose:
-	// ------------------------------------------------------------------------
-	glDeleteVertexArrays(1, &cubeVAO);
-	glDeleteVertexArrays(1, &lightVAO);
-	glDeleteBuffers(1, &VBO);
-
-	// glfw: terminate, clearing all previously allocated GLFW resources.
-	// ------------------------------------------------------------------
-	glfwTerminate();
-
-	// Close cameras udp connection
-	camera->CloseCamerasUDP();
-	return 0;
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void App::processInput(GLFWwindow *window)
 {
-	return;
-
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
+	// do not handle input
+	return;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->ProcessKeyboard(FORWARD, deltaTime);
+		App::app->camera->ProcessKeyboard(FORWARD, App::app->deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->ProcessKeyboard(BACKWARD, deltaTime);
+		App::app->camera->ProcessKeyboard(BACKWARD, App::app->deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->ProcessKeyboard(LEFT, deltaTime);
+		App::app->camera->ProcessKeyboard(LEFT, App::app->deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->ProcessKeyboard(RIGHT, deltaTime);
+		App::app->camera->ProcessKeyboard(RIGHT, App::app->deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void App::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	CurrentWidth = width;
-	CurrentHeight = height;
+	App::app->CurrentWidth = width;
+	App::app->CurrentHeight = height;
 }
 
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void App::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	return;
 
-	if (firstMouse)
+	if (App::app->firstMouse)
 	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
+		App::app->lastX = xpos;
+		App::app->lastY = ypos;
+		App::app->firstMouse = false;
 	}
 
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	float xoffset = xpos - App::app->lastX;
+	float yoffset = App::app->lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-	lastX = xpos;
-	lastY = ypos;
+	App::app->lastX = xpos;
+	App::app->lastY = ypos;
 
-	camera->ProcessMouseMovement(xoffset, yoffset);
+	App::app->camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera->ProcessMouseScroll(yoffset);
+	App::app->camera->ProcessMouseScroll(yoffset);
 }
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
-unsigned int loadTexture(char const * path)
+unsigned int App::loadTexture(char const * path)
 {
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
@@ -362,67 +457,48 @@ unsigned int loadTexture(char const * path)
 	return textureID;
 }
 
-void MainRender(bool IsLeftEye)
+void App::Start()
 {
-	glm::mat4 PerspectiveProjection;
-	// view/projection transformations
-	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-
-
-	float pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
-	float width_cm = (float)(ScreenWidth * pixelsize_cm);
-	float height_cm = (float)(ScreenHight * pixelsize_cm);
-
-	glm::vec3 LeftEye = camera->LeftEye;
-	glm::vec3 RightEye = camera->RightEye;
-
-	//NearPlane = scaleNearPlane * 0.25f / height_cm * 100.f;
-	//FarPlane = scaleFarPlane * 2.1f / height_cm * 100.f;
-
-	// setup camera paralax planes
-	LeftEye *= ParallaxScale;
-	RightEye *= ParallaxScale;
-	width_cm *= ParallaxScale;
-	height_cm *= ParallaxScale;
-
-	float zoff = 0.0f;
-	glm::vec3 pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
-	glm::vec3 pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
-	glm::vec3 pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
-
-	glm::vec3 EyeViewPointOffset_inUnits;
-	if (IsLeftEye)
+	// render loop
+	// -----------
+	while (!glfwWindowShouldClose(window))
 	{
-		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
+		// per-frame time logic
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 
-		// Get perspective matrix here
-		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEye, NearPlane, FarPlane);
-		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(LeftEye) << std::endl;
-		projection = PerspectiveProjection;
+		// input
+		// -----
+		processInput(window);
 
-		// 1 unit == 1m == 100 cm
-		EyeViewPointOffset_inUnits = LeftEye / 100.f;
-		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
-		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
+		// render
+		// ------
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Render for left Eye
+		MainRender(true);
+
+		// Render for right Eye
+		MainRender(false);
+
+
+		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+		// -------------------------------------------------------------------------------
+		glfwSwapBuffers(window);
+		glfwPollEvents();
 	}
-	else
-	{
-		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
+}
 
+void App::RenderCubes()
+{
+	// world transformation
+	glm::mat4 model;
 
-		// Get perspective matrix here
-		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEye, NearPlane, FarPlane);
-		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(RightEye) << std::endl;
-		projection = PerspectiveProjection;
-
-		// 1 unit == 1m == 100 cm
-		EyeViewPointOffset_inUnits = RightEye / 100.f;
-		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
-		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
-	}
-
-
-
+	// Draw light
+	// ------------------------------------------------------------------
 	// be sure to activate shader when setting uniforms/drawing objects
 	lightingShader->use();
 	lightingShader->setVec3("viewPos", camera->Position + EyeViewPointOffset_inUnits);
@@ -484,21 +560,10 @@ void MainRender(bool IsLeftEye)
 	lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
 	// Global transformation matrix
-	glm::mat4 view;
-	glm::vec3 FacePosOriginal = (camera->LeftEye - camera->RightEye) / 2.f;
-	glm::vec3 EyeSeparation;
-	EyeSeparation.x = (camera->RightEye.x - camera->LeftEye.x) / 2.f;
-	EyeSeparation.y = (camera->RightEye.y - camera->LeftEye.y) / 2.f;
-	EyeSeparation.z = (camera->RightEye.z - camera->LeftEye.z) / 2.f;
-
-	//http://paulbourke.net/stereographics/stereorender/
-	view = camera->GetViewMatrix(EyeViewPointOffset_inUnits);
-
 	lightingShader->setMat4("projection", PerspectiveProjection);
 	lightingShader->setMat4("view", view);
 
 	// world transformation
-	glm::mat4 model;
 	lightingShader->setMat4("model", model);
 
 	// bind diffuse map
@@ -528,6 +593,12 @@ void MainRender(bool IsLeftEye)
 
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
+}
+
+void App::RenderLight()
+{
+	// world transformation
+	glm::mat4 model;
 
 	// also draw the lamp object(s)
 	lampShader->use();
@@ -544,5 +615,106 @@ void MainRender(bool IsLeftEye)
 		lampShader->setMat4("model", model);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
+}
+
+void App::RenderDebugPoint()
+{
+	// world transformation
+	glm::mat4 DebugPointModel;
+	glm::mat4 DebugPointProjection;
+	glm::mat4 DebugPointView;
+
+	// Draw debug Point
+	// ------------------------------------------------------------------
+	DebugPointShader->use();
+	glBindVertexArray(DebugPointVAO);
+
+	glm::vec2 EyeScreenLocation = glm::vec2(MiddleEye.x / width_cm * 2.f, MiddleEye.y / height_cm * 2.f);
+
+	float DebugTrScalar = 0.015f;
+	DebugPointModel = glm::scale(DebugPointModel, glm::vec3(DebugTrScalar));
+	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(EyeScreenLocation.x / DebugTrScalar, EyeScreenLocation.y / DebugTrScalar, 0.f));
+
+
+	DebugPointShader->setMat4("projection", DebugPointProjection);
+	DebugPointShader->setMat4("view", DebugPointView);
+	DebugPointShader->setMat4("model", DebugPointModel);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void App::MainRender(bool IsLeftEye)
+{
+	// view/projection transformations
+	glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+	LeftEye = camera->LeftEye;
+	RightEye = camera->RightEye;
+	MiddleEye = (LeftEye + RightEye) / 2.f;
+
+	// setup camera paralax planes
+	LeftEyeScaled = LeftEye * ParallaxScale;
+	RightEyeScaled = RightEye * ParallaxScale;
+	width_cm_scaled = width_cm * ParallaxScale;
+	height_cm_scaled = width_cm * ParallaxScale;
+
+	float zoff = 0.0f;
+	glm::vec3 pa = glm::vec3(-width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+	glm::vec3 pb = glm::vec3(width_cm / 2.0f, -height_cm / 2.0f, -zoff);
+	glm::vec3 pc = glm::vec3(-width_cm / 2.0f, height_cm / 2.0f, -zoff);
+
+	if (IsLeftEye)
+	{
+		glViewport(0, 0, CurrentWidth / 2, CurrentHeight);
+
+		// Get perspective matrix here
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEyeScaled, NearPlane, FarPlane);
+		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(LeftEye) << std::endl;
+		projection = PerspectiveProjection;
+
+		// 1 unit == 1m == 100 cm
+		EyeViewPointOffset_inUnits = LeftEyeScaled / 100.f;
+		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
+		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
+	}
+	else
+	{
+		glViewport(CurrentWidth / 2, 0, CurrentWidth / 2, CurrentHeight);
+
+
+		// Get perspective matrix here
+		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEyeScaled, NearPlane, FarPlane);
+		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(RightEye) << std::endl;
+		projection = PerspectiveProjection;
+
+		// 1 unit == 1m == 100 cm
+		EyeViewPointOffset_inUnits = RightEyeScaled / 100.f;
+		EyeViewPointOffset_inUnits += glm::vec3(0.f, 0.f, -VirtualCameraOffsetZ / 100.f);
+		//std::cout << "EyeViewPoint_inUnits: " << glm::to_string(EyeViewPointOffset_inUnits) << std::endl;
+	}
+
+	glm::vec3 FacePosOriginal = (camera->LeftEye - camera->RightEye) / 2.f;
+	glm::vec3 EyeSeparation;
+	EyeSeparation.x = (camera->RightEye.x - camera->LeftEye.x) / 2.f;
+	EyeSeparation.y = (camera->RightEye.y - camera->LeftEye.y) / 2.f;
+	EyeSeparation.z = (camera->RightEye.z - camera->LeftEye.z) / 2.f;
+
+	//http://paulbourke.net/stereographics/stereorender/
+	view = camera->GetViewMatrix(EyeViewPointOffset_inUnits);
+
+	RenderDebugPoint();
+	RenderCubes();
+	RenderLight();
 
 }
+
+
+
+
+int main()
+{
+	App OpenGLApp = App();
+	OpenGLApp.Start();
+
+	return 0;
+}
+

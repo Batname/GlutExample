@@ -69,6 +69,9 @@ public:
 	glm::vec3 LeftEye = glm::vec3(-3.f, 0.f, 160.f);
 	glm::vec3 RightEye = glm::vec3(3.f, 0.f, 160.f);
 
+	float deltaPackageTime = 0.0f;
+	float lastPackage = 0.0f;
+
 	// Constructor with vectors
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 	{
@@ -197,6 +200,16 @@ public:
 		//start communication
 		while (bIsUDPThreadRunning == true)
 		{
+			float currentPackage = glfwGetTime();
+			deltaPackageTime = currentPackage - lastPackage;
+			lastPackage = currentPackage;
+			//std::cout
+			//	<< "deltaPackageTime ms : "
+			//	<< deltaPackageTime
+			//	<< " PPS: "
+			//	<< 1 / deltaPackageTime
+			//<< std::endl;
+
 			//clear the buffer by filling null, it might have previously received data
 			memset(UDPbuf, '\0', BUFLEN);
 			//try to receive some data, this is a blocking call
@@ -208,7 +221,7 @@ public:
 
 			ParseUDPString(UDPbuf);
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(ThreadDelayMS));
+			//std::this_thread::sleep_for(std::chrono::milliseconds(ThreadDelayMS));
 		}
 	}
 

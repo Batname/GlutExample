@@ -161,6 +161,8 @@
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\resources\shaders\DebugPoint.fragment.glsl" />
+    <None Include="..\resources\shaders\DebugPoint.vertex.glsl" />
     <None Include="..\resources\shaders\Lamp.fragment.glsl" />
     <None Include="..\resources\shaders\Lamp.vertex.glsl" />
     <None Include="..\resources\shaders\Main.fragment.glsl" />

@@ -46,5 +46,11 @@
     <None Include="..\resources\shaders\Main.vertex.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\resources\shaders\DebugPoint.fragment.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\shaders\DebugPoint.vertex.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
