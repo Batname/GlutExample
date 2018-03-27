@@ -153,7 +153,7 @@ private:
 
 	// positions all containers
 	glm::vec3 cubePositions[10] = {
-		glm::vec3(0.0f,  0.0f,  2.0f),
+		glm::vec3(0.0f,  0.05f,  2.0f),
 		glm::vec3(2.0f,  5.0f, -15.0f),
 		glm::vec3(-1.5f, -2.2f, -2.5f),
 		glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -239,6 +239,10 @@ App::App()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+
+	glfwSwapInterval(0);
+
 
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -262,14 +266,14 @@ App::App()
 	// glfw window creation
 	// --------------------
 
-	//window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL); // windowed
-
+	//window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", NULL, NULL); // windowed
+	
 	// "Windowed full screen" windows
 	//glfwWindowHint(GLFW_RED_BITS, DimencoMonitorMode->redBits);
 	//glfwWindowHint(GLFW_GREEN_BITS, DimencoMonitorMode->greenBits);
 	//glfwWindowHint(GLFW_BLUE_BITS, DimencoMonitorMode->blueBits);
 	//glfwWindowHint(GLFW_REFRESH_RATE, DimencoMonitorMode->refreshRate);
-	//GLFWwindow* window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
+	//window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
 
 	// Full screen windows
 	window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
@@ -609,18 +613,18 @@ void App::RenderCubes()
 
 	// render containers
 	glBindVertexArray(cubeVAO);
-	for (unsigned int i = 0; i < 10; i++)
+	for (unsigned int i = 1; i < 11; i++)
 	{
 		// calculate the model matrix for each object and pass it to shader before drawing
 		glm::mat4 model;
 
 		// scale if cube 0;
-		if (i == 0)
+		if (i == 1)
 		{
 			model = glm::scale(model, glm::vec3(0.2, 0.2, 0.2));
 		}
 
-		model = glm::translate(model, cubePositions[i]);
+		model = glm::translate(model, cubePositions[i -1]);
 		float angle = 20.0f * i;
 		model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 		lightingShader->setMat4("model", model);
@@ -702,7 +706,7 @@ void App::MainRender(bool IsLeftEye)
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, LeftEyeScaled, NearPlane, FarPlane);
-		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(LeftEye) << std::endl;
+		//std::cout << "LeftEye PerspectiveProjection" << glm::to_string(LeftEye) << "\r\n";
 		projection = PerspectiveProjection;
 
 		// 1 unit == 1m == 100 cm
@@ -717,7 +721,7 @@ void App::MainRender(bool IsLeftEye)
 
 		// Get perspective matrix here
 		PerspectiveProjection = camera->GeneralizedPerspectiveProjection(pa, pb, pc, RightEyeScaled, NearPlane, FarPlane);
-		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(RightEye) << std::endl;
+		//std::cout << "RightEye PerspectiveProjection" << glm::to_string(RightEye) << "\r\n";
 		projection = PerspectiveProjection;
 
 		// 1 unit == 1m == 100 cm
