@@ -50,17 +50,17 @@ private:
 	void MainRender(bool IsLeftEye);
 private:
 	// settings
-	const unsigned int SCR_WIDTH = 800;
-	const unsigned int SCR_HEIGHT = 600;
+	unsigned int SCR_WIDTH;
+	unsigned int SCR_HEIGHT;
 
 	// current widows size
-	unsigned int CurrentWidth = SCR_WIDTH;
-	unsigned int CurrentHeight = SCR_HEIGHT;
+	int CurrentWidth;
+	int CurrentHeight;
 
 	// camera
 	Camera* camera;
-	float lastX = SCR_WIDTH / 2.0f;
-	float lastY = SCR_HEIGHT / 2.0f;
+	float lastX;
+	float lastY;
 	bool firstMouse = true;
 
 	float scaleFarPlane = 100.f;
@@ -175,6 +175,13 @@ private:
 // GLFW
 private:
 	GLFWwindow* window;
+	GLFWmonitor* PrimaryMonitor;
+	int MonitorsCount;
+	GLFWmonitor** Monitors;
+	GLFWmonitor*  DimencoMonitor;
+	const GLFWvidmode* DimencoMonitorMode;
+
+
 // Screen
 private:
 	float pixelsize_cm;
@@ -237,9 +244,36 @@ App::App()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+	// read data about monitor
+	PrimaryMonitor = glfwGetPrimaryMonitor();
+	Monitors = glfwGetMonitors(&MonitorsCount);
+	DimencoMonitor = Monitors[MonitorsCount - 1];
+	DimencoMonitorMode = glfwGetVideoMode(DimencoMonitor);
+
+	// Setup settings sizes
+	SCR_WIDTH = CurrentWidth = DimencoMonitorMode->width;
+	SCR_HEIGHT = CurrentHeight = DimencoMonitorMode->height;
+
+	// camera sizes
+	lastX = SCR_WIDTH / 2.0f;
+	lastY = SCR_HEIGHT / 2.0f;
+
+
 	// glfw window creation
 	// --------------------
-	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+
+	//window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL); // windowed
+
+	// "Windowed full screen" windows
+	//glfwWindowHint(GLFW_RED_BITS, DimencoMonitorMode->redBits);
+	//glfwWindowHint(GLFW_GREEN_BITS, DimencoMonitorMode->greenBits);
+	//glfwWindowHint(GLFW_BLUE_BITS, DimencoMonitorMode->blueBits);
+	//glfwWindowHint(GLFW_REFRESH_RATE, DimencoMonitorMode->refreshRate);
+	//GLFWwindow* window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
+
+	// Full screen windows
+	window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
+
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
