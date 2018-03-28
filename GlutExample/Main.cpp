@@ -68,8 +68,9 @@ private:
 	float ParallaxScale = 2.f;
 	float VirtualCameraOffsetZ = 200.f;
 	float ScreenWidth = 3840.f;
-	float ScreenHight = 2160.f;
+	float ScreenHight = 1080.f;//2160.f;
 	float ScreenSizeInch = 65.f;
+	float ScreenHeight_cm_Scale = 2.f;
 
 	float NearPlane = 0.1f;
 	float FarPlane = 10000.f;
@@ -310,7 +311,7 @@ App::App()
 	// Set screen dementions
 	pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
 	width_cm = (float)(ScreenWidth * pixelsize_cm);
-	height_cm = (float)(ScreenHight * pixelsize_cm);
+	height_cm = (float)(ScreenHight * pixelsize_cm) * ScreenHeight_cm_Scale;
 
 	// Load Geometry and textures
 	LoadCubes();
