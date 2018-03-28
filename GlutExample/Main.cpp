@@ -669,9 +669,10 @@ void App::RenderDebugPoint()
 
 	glm::vec2 EyeScreenLocation = glm::vec2(MiddleEye.x / width_cm * 2.f, MiddleEye.y / height_cm * 2.f);
 
-	float DebugTrScalar = 0.015f;
+	float DebugTrScalar = 0.01f;
 	DebugPointModel = glm::scale(DebugPointModel, glm::vec3(DebugTrScalar));
 	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(EyeScreenLocation.x / DebugTrScalar, EyeScreenLocation.y / DebugTrScalar, 0.f));
+	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(0.35f/2, 0.f, 0.f));
 
 
 	DebugPointShader->setMat4("projection", DebugPointProjection);
