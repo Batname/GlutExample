@@ -68,7 +68,7 @@ private:
 	float ParallaxScale = 2.f;
 	float VirtualCameraOffsetZ = 200.f;
 	float ScreenWidth = 3840.f;
-	float ScreenHight = 1080.f;//2160.f;
+	float ScreenHight = 2160.f;// 1080.f;//2160.f;
 	float ScreenSizeInch = 65.f;
 	float ScreenHeight_cm_Scale = 2.f;
 
@@ -78,6 +78,7 @@ private:
 	// timing
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
+	double FrameLimit = 150.0;
 
 	// lighting
 	glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
@@ -498,6 +499,11 @@ unsigned int App::loadTexture(char const * path)
 
 void App::Start()
 {
+	auto start = std::chrono::steady_clock::now();
+	int Frames = 0;
+
+	double frame_start = glfwGetTime();
+
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
@@ -517,17 +523,63 @@ void App::Start()
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+		// Limit FPS
+		if (FrameLimit > 0.f)
+		{
+			++Frames;
+			auto now = std::chrono::steady_clock::now();
+			auto diff = now - start;
+			auto end = now + std::chrono::milliseconds((int)(1.0 / FrameLimit * 1000.0));
+			if (diff >= std::chrono::seconds(1))
+			{
+				start = now;
+				std::cout << "FPS: " << Frames << " " << (1.f / FrameLimit) << "ms" << std::endl;
+				Frames = 0;
+
+			}
+
+			std::this_thread::sleep_until(end);
+		}
+		else
+		{
+			std::cout << "FPS: " << 1.0 / deltaTime << " " << (deltaTime  * 1000.f) << "ms" << std::endl;
+		}
+
+
+		//++Frames;
+		//double wait_time = 1.0 / (FrameLimit);
+		//double curr_frame_time = glfwGetTime() - frame_start;
+		//double dur = 1000.0 * (wait_time - curr_frame_time) + 0.5;
+		//DWORD durDW = (DWORD)dur;
+		//if (durDW > 0) // ensures that we don't have a dur > 0.0 which converts to a durDW of 0.
+		//{
+		//	Sleep(durDW);
+		//	//std::cout << "FPS: " << 1.0 / deltaTime << " " << (deltaTime  * 1000.f) << "ms" << std::endl;
+		//	std::cout << "FPS: " << Frames << " " << (1.f / FrameLimit) << "ms" << std::endl;
+		//}
+		//else
+		//{
+		//	Frames = 0;
+		//}
+
+		double frame_end = glfwGetTime();
+		frame_start = frame_end;
+
+
+		//~~~~~~~~~~~~~~~~~~~~~~~ RENDERING ~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// Render for left Eye
 		MainRender(true);
 
 		// Render for right Eye
 		MainRender(false);
+		//~~~~~~~~~~~~~~~~~~~~~~~ END RENDERING ~~~~~~~~~~~~~~~~~~~~~
 
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
-		glfwSwapBuffers(window);
 		glfwPollEvents();
+		glfwSwapBuffers(window);
 	}
 }
 
