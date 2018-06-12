@@ -522,7 +522,7 @@ void App::Start()
 
 		// render
 		// ------
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -536,7 +536,7 @@ void App::Start()
 			if (diff >= std::chrono::seconds(1))
 			{
 				start = now;
-				std::cout << "FPS: " << Frames << " " << (1.f / FrameLimit) << "ms" << std::endl;
+				//std::cout << "FPS: " << Frames << " " << (1.f / FrameLimit) << "ms" << std::endl;
 				Frames = 0;
 
 			}
@@ -545,7 +545,7 @@ void App::Start()
 		}
 		else
 		{
-			std::cout << "FPS: " << 1.0 / deltaTime << " " << (deltaTime  * 1000.f) << "ms" << std::endl;
+			//std::cout << "FPS: " << 1.0 / deltaTime << " " << (deltaTime  * 1000.f) << "ms" << std::endl;
 		}
 
 
