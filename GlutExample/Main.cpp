@@ -65,12 +65,20 @@ private:
 
 	float scaleFarPlane = 100.f;
 	float scaleNearPlane = 0.01f;
-	float ParallaxScale = 2.f;
+	float ParallaxScale = 12.f;
 	float VirtualCameraOffsetZ = 200.f;
-	float ScreenWidth = 3840.f;
-	float ScreenHight = 2160.f;// 1080.f;//2160.f;
+
+	// Screen settings
+	float ScreenWidth = 5120.f;
+	float ScreenHeight = 1440.f;
+
 	float ScreenSizeInch = 65.f;
-	float ScreenHeight_cm_Scale = 2.f;
+	float ScreenHeight_cm_Scale = 1.f;
+
+	float pixelsize_cm = 0.0186f;
+	float DebugSquareScalar = 0.01f;
+	float FPGAScreenWidth = 7680.f;
+	float FPGAScreenHeight = 3840.f;
 
 	float NearPlane = 0.1f;
 	float FarPlane = 10000.f;
@@ -78,7 +86,7 @@ private:
 	// timing
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
-	double FrameLimit = 150.0;
+	double FrameLimit = 0.0;
 
 	// lighting
 	glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
@@ -186,7 +194,6 @@ private:
 
 // Screen
 private:
-	float pixelsize_cm;
 	float width_cm;
 	float height_cm;
 
@@ -254,7 +261,7 @@ App::App()
 	PrimaryMonitor = glfwGetPrimaryMonitor();
 	Monitors = glfwGetMonitors(&MonitorsCount);
 	DimencoMonitor = Monitors[MonitorsCount - 1];
-	DimencoMonitorMode = glfwGetVideoMode(DimencoMonitor);
+	DimencoMonitorMode = glfwGetVideoMode(PrimaryMonitor);
 
 	// Setup settings sizes
 	SCR_WIDTH = CurrentWidth = DimencoMonitorMode->width;
@@ -278,7 +285,7 @@ App::App()
 	//window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
 
 	// Full screen windows
-	window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", DimencoMonitor, NULL);
+	window = glfwCreateWindow(DimencoMonitorMode->width, DimencoMonitorMode->height, "LearnOpenGL", PrimaryMonitor, NULL);
 
 	if (window == NULL)
 	{
@@ -308,11 +315,6 @@ App::App()
 	lightingShader = new Shader("../resources/shaders/Main.vertex.glsl", "../resources/shaders/Main.fragment.glsl");
 	lampShader = new Shader("../resources/shaders/Lamp.vertex.glsl", "../resources/shaders/Lamp.fragment.glsl");
 	DebugPointShader = new Shader("../resources/shaders/DebugPoint.vertex.glsl", "../resources/shaders/DebugPoint.fragment.glsl");
-
-	// Set screen dementions
-	pixelsize_cm = (float)((ScreenSizeInch * 2.54) / sqrt(ScreenWidth * ScreenWidth + ScreenHight * ScreenHight));
-	width_cm = (float)(ScreenWidth * pixelsize_cm);
-	height_cm = (float)(ScreenHight * pixelsize_cm) * ScreenHeight_cm_Scale;
 
 	// Load Geometry and textures
 	LoadCubes();
@@ -720,12 +722,9 @@ void App::RenderDebugPoint()
 	DebugPointShader->use();
 	glBindVertexArray(DebugPointVAO);
 
-	glm::vec2 EyeScreenLocation = glm::vec2(MiddleEye.x / width_cm * 2.f, MiddleEye.y / height_cm * 2.f);
-
-	float DebugTrScalar = 0.01f;
-	DebugPointModel = glm::scale(DebugPointModel, glm::vec3(DebugTrScalar));
-	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(EyeScreenLocation.x / DebugTrScalar, EyeScreenLocation.y / DebugTrScalar, 0.f));
-	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(0.35f/2, 0.f, 0.f));
+	DebugPointModel = glm::scale(DebugPointModel, glm::vec3(DebugSquareScalar, DebugSquareScalar, 1.f));
+	DebugPointModel = glm::translate(DebugPointModel, glm::vec3(pixelsize_cm * FPGAScreenWidth / ScreenWidth / DebugSquareScalar * MiddleEye.x / 2.f,
+		pixelsize_cm * FPGAScreenHeight / ScreenHeight / DebugSquareScalar * MiddleEye.y / 2.f, 0.f));
 
 
 	DebugPointShader->setMat4("projection", DebugPointProjection);
@@ -794,8 +793,8 @@ void App::MainRender(bool IsLeftEye)
 	view = camera->GetViewMatrix(EyeViewPointOffset_inUnits);
 
 	RenderDebugPoint();
-	RenderCubes();
-	RenderLight();
+	//RenderCubes();
+	//RenderLight();
 
 }
 

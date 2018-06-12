@@ -71,13 +71,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\OpenGL\GlutExample\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\OpenGL\GlutExample\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Dimenco\Documents\Visual Studio 2015\Projects\GlutExample\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Dimenco\Documents\Visual Studio 2015\Projects\GlutExample\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\OpenGL\GlutExample\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\OpenGL\GlutExample\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Dimenco\Documents\Visual Studio 2015\Projects\GlutExample\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Dimenco\Documents\Visual Studio 2015\Projects\GlutExample\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -109,7 +109,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
